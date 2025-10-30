@@ -1,8 +1,8 @@
 build: 
-	go build -o bin/go-real-time-database cmd/main.go
+	@go build -o bin/go-real-time-database cmd/main.go
 
-run:
-	./bin/go-real-time-database
+run:build
+	@./bin/go-real-time-database
 
 test: 
-	go test -v ./...
+	@go test -v ./...
