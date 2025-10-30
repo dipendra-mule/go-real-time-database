@@ -4,57 +4,30 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/google/uuid"
-	"go.etcd.io/bbolt"
+	"github.com/dipendra-mule/go-real-time-database/database"
 )
 
 func main() {
-	db, err := bbolt.Open(".db", 0666, nil)
+	db, err := database.New()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	user := map[string]string {
-		"name" : "john",
-		"age": "19",
-	}	// int, string, []byte, float, ...
+	user := map[string]string{
+		"name": "john",
+		"age":  "19",
+	}
 
-	db.Update(func(tx *bbolt.Tx ) error { 
-		b, err := tx.CreateBucket([]byte("users"))
-		if err != nil {
-			return err
-		}
+	// int, string, []byte, float, ...
 
-		id := uuid.New()
-		for k, v := range user {
-			if err := b.Put([]byte(k), []byte(v)); err != nil {
-				return err
-			}
-		}
-		if err := b.Put([]byte("id"), []byte(id.String())); err != nil {
-			return err
-		}
-		return nil
-	})
-
-	newUser := make(map[string]string)
-
-	if err := db.View(func(tx *bbolt.Tx) error {
-		b := tx.Bucket([]byte("users"))
-		if  b == nil {
-			return fmt.Errorf("bucket (%s) not found", "user")
-		}
-
-		b.ForEach(func(k, v []byte) error {
-			newUser[string(k)] = string(v)
-			return nil
-		})
-
-
-		return nil
-	}); err != nil {
+	id, err := db.Insert("users", user)
+	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("Hello, world!")
-	fmt.Println(newUser)
+	// coll, err := db.CreateCollection("users")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	fmt.Printf("%+v\n", id)
 }
