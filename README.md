@@ -2,3 +2,4 @@
 
 ## Introduction
 
+simple supabase like database for golang

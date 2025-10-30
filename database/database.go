@@ -34,46 +34,44 @@ func New() (*Database, error) {
 }
 
 func (d *Database) CreateCollection(name string) (*Collection, error) {
-	coll := Collection{}
-	err := d.db.Update(func(tx *bbolt.Tx) error {
-		var (
-			err error
-			b   *bbolt.Bucket
-		)
-		b = tx.Bucket([]byte(name))
-		if b == nil {
-			b, err = tx.CreateBucket([]byte("users"))
-			if err != nil {
-				return err
-			}
-		}
-		coll.Bucket = b
-		return nil
-	})
 
+	tx, err := d.db.Begin(true)
 	if err != nil {
 		return nil, err
 	}
-	return &coll, nil
+	defer tx.Rollback()
+	// check if bucket exists
+	// b := tx.Bucket([]byte(name))
+	// if b != nil {
+	// 	return &Collection{Bucket: b}, nil
+	// }
+	// create new bucket if not exists
+	b, err := tx.CreateBucketIfNotExists([]byte(name))
+	if err != nil {
+		return nil, err
+	}
+	return &Collection{Bucket: b}, nil
 }
 
 func (d *Database) Insert(collName string, data M) (uuid.UUID, error) {
 	id := uuid.New()
-	coll, err := d.CreateCollection(collName)
+	tx, err := d.db.Begin(true)
 	if err != nil {
 		return id, err
 	}
-	d.db.Update(func(tx *bbolt.Tx) error {
-		for k, v := range data {
-			if err := coll.Put([]byte(k), []byte(v)); err != nil {
-				return err
-			}
+	defer tx.Rollback()
+	b, err := tx.CreateBucketIfNotExists([]byte(collName))
+	if err != nil {
+		return id, err
+	}
+	for k, v := range data {
+		if err := b.Put([]byte(k), []byte(v)); err != nil {
+			return id, err
 		}
-		if err := coll.Put([]byte("id"), []byte(id.String())); err != nil {
-			return err
-		}
-		return nil
-	})
+	}
+	if err := b.Put([]byte("id"), []byte(id.String())); err != nil {
+		return id, err
+	}
 	return id, nil
 }
 
